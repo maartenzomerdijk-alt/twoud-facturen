@@ -80,7 +80,7 @@ Regels:
 - Verbeter duidelijke spelfouten in gewone woorden (bijv. "Electrick" -> "Elektra", "Fundering" goed spellen), maar laat namen van mensen, bedrijven en materialen staan zoals geschreven.
 - Postcode zonder spatie: "1934PV".
 - Neem elk woord of getal waar je niet zeker van bent op in "twijfels". Liever één twijfel te veel dan een verkeerd adres of bedrag.
-Gebruik altijd de tool factuurgegevens.`;
+Geef je antwoord altijd door de tool factuurgegevens aan te roepen, zonder verdere tekst.`;
 
 async function leesFoto(foto: string, type: string) {
   const key = Deno.env.get("ANTHROPIC_API_KEY");
@@ -92,7 +92,7 @@ async function leesFoto(foto: string, type: string) {
       model: MODEL,
       max_tokens: 2000,
       tools: [LEES_TOOL],
-      tool_choice: { type: "tool", name: "factuurgegevens" },
+      tool_choice: { type: "auto" },
       messages: [{
         role: "user",
         content: [
@@ -105,8 +105,14 @@ async function leesFoto(foto: string, type: string) {
   if (!res.ok) throw new Error(`Lezen mislukt (${res.status}): ${(await res.text()).slice(0, 300)}`);
   const data = await res.json();
   const blok = data.content?.find((c: { type: string }) => c.type === "tool_use");
-  if (!blok) throw new Error("Geen gegevens teruggekregen");
-  return blok.input;
+  if (blok) return blok.input;
+  // Valt terug op JSON in de tekst als het model de tool niet gebruikte.
+  const tekst = (data.content ?? []).filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join("\n");
+  const m = tekst.match(/\{[\s\S]*\}/);
+  if (m) {
+    try { return JSON.parse(m[0]); } catch { /* hieronder foutmelding */ }
+  }
+  throw new Error("Geen gegevens teruggekregen");
 }
 
 function controleer(g: {
@@ -184,6 +190,9 @@ Deno.serve(async (req) => {
       const regels = schoonRegels(f.regels);
       if (!regels.some((r) => r.bedrag != null)) return json({ fout: "Er staat geen enkel bedrag op de factuur" }, 400);
 
+      const resendKey = Deno.env.get("RESEND_API_KEY");
+      if (!resendKey) throw new Error("Mailen is nog niet ingesteld (RESEND_API_KEY ontbreekt). Er is geen factuurnummer gebruikt.");
+
       const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       const factuurdatum = vandaag();
       const vervaldatum = plusDagen(factuurdatum, TERMIJN_DAGEN);
@@ -204,8 +213,6 @@ Deno.serve(async (req) => {
 
       await sb.storage.from("facturen").upload(pad, pdf, { contentType: "application/pdf", upsert: true });
 
-      const resendKey = Deno.env.get("RESEND_API_KEY");
-      if (!resendKey) throw new Error("RESEND_API_KEY ontbreekt");
       const mail = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
