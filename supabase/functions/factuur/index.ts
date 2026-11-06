@@ -90,7 +90,7 @@ async function leesFoto(foto: string, type: string) {
     headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 2000,
+      max_tokens: 8000,
       tools: [LEES_TOOL],
       tool_choice: { type: "auto" },
       messages: [{
