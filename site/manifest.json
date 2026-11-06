@@ -1,0 +1,3 @@
+{ "name": "Facturen 't Woud", "short_name": "Facturen", "start_url": "./", "display": "standalone",
+  "background_color": "#f4f4f1", "theme_color": "#4a4d47",
+  "icons": [{ "src": "icoon.png", "sizes": "512x512", "type": "image/png" }] }

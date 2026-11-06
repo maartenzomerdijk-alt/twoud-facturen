@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Facturen 't Woud</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#4a4d47">
+<link rel="apple-touch-icon" href="icoon.png">
+<link rel="icon" href="icoon.png">
+<link rel="manifest" href="manifest.json">
+<style>
+  /* Eén kolom, grote velden, één knop per stap. Kleuren uit het logo: antraciet en salie. */
+  :root {
+    --bg: #f4f4f1;
+    --paneel: #ffffff;
+    --tekst: #2b2d29;
+    --zacht: #686b63;
+    --lijn: #c9cbc2;
+    --antraciet: #4a4d47;
+    --salie: #8f9a76;
+    --salie-licht: #e6e9dd;
+    --oranje: #c76a14;
+    --oranje-licht: #fdf0e1;
+    --rood: #b3261e;
+    --groen: #2f6b3a;
+    --groen-licht: #e3f0e4;
+    --body: "Source Sans 3", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    --cijfer: "Source Sans 3", "Segoe UI", system-ui, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--tekst);
+    font: 20px/1.4 var(--body);
+    padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(40px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
+  main { max-width: 640px; margin: 0 auto; display: grid; gap: 22px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 6px; }
+  header img { height: 52px; width: auto; }
+  header .uit { font-size: 15px; color: var(--zacht); background: none; border: 0; text-decoration: underline; padding: 8px; cursor: pointer; }
+  h1 { font-size: 26px; margin: 0; }
+  h2 { font-size: 20px; margin: 0 0 10px; color: var(--antraciet); text-transform: uppercase; letter-spacing: .06em; }
+  .paneel { background: var(--paneel); border: 1px solid var(--lijn); border-radius: 14px; padding: 18px; display: grid; gap: 14px; }
+  label { display: grid; gap: 4px; font-weight: 600; font-size: 18px; }
+  input {
+    font: inherit; font-size: 21px; color: var(--tekst); width: 100%;
+    padding: 12px 14px; border: 2px solid var(--lijn); border-radius: 10px; background: var(--paneel);
+  }
+  input:focus { outline: none; border-color: var(--antraciet); box-shadow: 0 0 0 3px var(--salie-licht); }
+  input.twijfel { border-color: var(--oranje); background: var(--oranje-licht); }
+  button { font: inherit; cursor: pointer; }
+  .groot {
+    width: 100%; min-height: 72px; border-radius: 14px; border: 0;
+    font-size: 23px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 12px;
+    padding: 14px 18px; text-align: center;
+  }
+  .groot svg { width: 30px; height: 30px; flex: none; }
+  .hoofd { background: var(--antraciet); color: #fff; }
+  .hoofd:active { transform: translateY(1px); }
+  .tweede { background: var(--salie-licht); color: var(--antraciet); border: 2px solid var(--salie); }
+  .groot:disabled { opacity: .55; cursor: wait; }
+  .groot:focus-visible, .klein:focus-visible, .weg:focus-visible { outline: 3px solid var(--salie); outline-offset: 3px; }
+  .of { text-align: center; color: var(--zacht); font-size: 17px; margin: -6px 0; }
+
+  .regel { display: grid; grid-template-columns: 1fr 9.5em auto; gap: 8px; align-items: end; }
+  .regel label span { font-size: 15px; font-weight: 600; color: var(--zacht); }
+  .regel .bedrag input { text-align: right; font-variant-numeric: tabular-nums; }
+  .weg { border: 0; background: none; color: var(--zacht); font-size: 30px; line-height: 1; width: 44px; height: 52px; border-radius: 10px; }
+  .weg:hover { background: var(--bg); color: var(--rood); }
+  .regel + .regel { border-top: 1px dashed var(--lijn); padding-top: 12px; }
+  .klein { justify-self: start; background: none; border: 2px dashed var(--salie); color: var(--antraciet); border-radius: 10px; padding: 10px 16px; font-size: 19px; font-weight: 600; }
+  .uitleg { font-size: 16px; color: var(--zacht); margin: 0; }
+  .btwnoot { font-size: 14px; color: var(--oranje); font-weight: 600; }
+
+  .totaal { display: grid; gap: 6px; font-variant-numeric: tabular-nums; }
+  .totaal > div, #t-btw-regels > div { display: flex; justify-content: space-between; gap: 12px; }
+  .totaal > #t-btw-regels { display: grid; gap: 6px; }
+  .totaal .eind { font-size: 26px; font-weight: 800; border-top: 2px solid var(--tekst); padding-top: 8px; margin-top: 4px; }
+
+  .melding { border-radius: 12px; padding: 14px 16px; font-size: 18px; }
+  .melding ul { margin: 6px 0 0; padding-left: 22px; }
+  .melding.let-op { background: var(--oranje-licht); border: 2px solid var(--oranje); }
+  .melding.fout { background: #fbe9e7; border: 2px solid var(--rood); color: var(--rood); }
+  .melding.goed { background: var(--groen-licht); border: 2px solid var(--groen); }
+  .melding strong { display: block; }
+
+  .bezig { display: flex; align-items: center; gap: 14px; font-size: 20px; }
+  .draai { width: 30px; height: 30px; border-radius: 50%; border: 4px solid var(--salie-licht); border-top-color: var(--antraciet); animation: draai 0.9s linear infinite; flex: none; }
+  @keyframes draai { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .draai { animation-duration: 3s; } }
+
+  .klaar { text-align: center; display: grid; gap: 16px; justify-items: center; }
+  .klaar .vink { width: 84px; height: 84px; border-radius: 50%; background: var(--groen); color: #fff; display: grid; place-items: center; }
+  .klaar .vink svg { width: 48px; height: 48px; }
+  .klaar p { margin: 0; }
+  .klaar .nummer { font-size: 30px; font-weight: 800; }
+  a.link { color: var(--antraciet); font-size: 18px; }
+
+  @media (max-width: 480px) {
+    body { font-size: 19px; }
+    .regel { grid-template-columns: 1fr auto; }
+    .regel .oms { grid-column: 1 / -1; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="logo.jpg" alt="Aannemersbedrijf 't Woud">
+    <button class="uit" id="uitloggen" hidden>Afmelden</button>
+  </header>
+
+  <!-- Stap 0: pincode -->
+  <section id="scherm-pin" class="paneel" hidden>
+    <h1>Facturen maken</h1>
+    <label>Pincode
+      <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="12">
+    </label>
+    <div id="pin-fout" class="melding fout" hidden></div>
+    <button class="groot hoofd" id="pin-knop">Verder</button>
+  </section>
+
+  <!-- Stap 1: invullen -->
+  <section id="scherm-factuur" hidden>
+    <div style="display:grid;gap:22px">
+      <input id="foto" type="file" accept="image/*" capture="environment" hidden>
+      <button class="groot hoofd" id="foto-knop">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        Foto van rekening
+      </button>
+      <p class="of">of vul het hieronder zelf in</p>
+
+      <div id="bezig" class="paneel" hidden><div class="bezig"><div class="draai"></div><span id="bezig-tekst">Rekening wordt gelezen…</span></div></div>
+      <div id="meldingen" style="display:grid;gap:12px"></div>
+
+      <section class="paneel">
+        <h2>Klant</h2>
+        <label>Naam klant <input id="k-naam" autocomplete="off"></label>
+        <label>Straat en huisnummer <input id="k-adres" autocomplete="off"></label>
+        <label>Postcode en plaats <input id="k-plaats" autocomplete="off"></label>
+        <label>Betreft <input id="betreft" autocomplete="off" placeholder="bijv. uitbreiding garage"></label>
+      </section>
+
+      <section class="paneel">
+        <h2>Werkzaamheden</h2>
+        <p class="uitleg">Een regel zonder bedrag komt als toelichting op de factuur.</p>
+        <div id="regels" style="display:grid;gap:12px"></div>
+        <button class="klein" id="regel-erbij">+ Regel erbij</button>
+      </section>
+
+      <section class="paneel totaal" aria-live="polite">
+        <div><span>Totaal zonder btw</span><span id="t-sub">€ 0,00</span></div>
+        <div id="t-btw-regels"></div>
+        <div class="eind"><span>Totaal</span><span id="t-tot">€ 0,00</span></div>
+      </section>
+
+      <div id="maak-fout" class="melding fout" hidden></div>
+      <button class="groot hoofd" id="maak-knop">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+        Maak factuur en mail naar mij
+      </button>
+      <button class="groot tweede" id="leeg-knop">Alles leegmaken</button>
+    </div>
+  </section>
+
+  <!-- Stap 2: klaar -->
+  <section id="scherm-klaar" class="paneel klaar" hidden>
+    <div class="vink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></div>
+    <p class="nummer" id="klaar-nummer"></p>
+    <p id="klaar-tekst"></p>
+    <a class="link" id="klaar-pdf" target="_blank" rel="noopener">PDF hier openen</a>
+    <button class="groot hoofd" id="nieuw-knop">Nieuwe factuur</button>
+  </section>
+</main>
+
+<script>
+const API = "https://fyktxkyqigusbffxicxs.supabase.co/functions/v1/factuur";
+const $ = (id) => document.getElementById(id);
+const bewaar = { get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+                 set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+                 weg(k) { try { localStorage.removeItem(k); } catch {} } };
+let pin = bewaar.get("twoud-pin");
+let regels = []; // { omschrijving, bedrag (getal of null), btw }
+
+const euro = (n) => "€ " + (Math.round(n * 100) / 100).toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function leesBedrag(s) {
+  s = String(s ?? "").replace(/[€\s]/g, "").replace(/,-+$/, "");
+  if (!s) return null;
+  if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");          // 12.150,40
+  else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");          // 12.150
+  const n = Number(s);
+  return isFinite(n) ? Math.round(n * 100) / 100 : NaN;
+}
+const toonBedrag = (n) => n == null ? "" : n.toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function scherm(naam) {
+  for (const s of ["pin", "factuur", "klaar"]) $("scherm-" + s).hidden = s !== naam;
+  $("uitloggen").hidden = naam === "pin";
+  window.scrollTo(0, 0);
+}
+
+async function vraag(data) {
+  const res = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...data, pin }) });
+  let body = {};
+  try { body = await res.json(); } catch {}
+  if (res.status === 401) { bewaar.weg("twoud-pin"); pin = null; scherm("pin"); throw new Error("Pincode klopt niet meer. Vul hem opnieuw in."); }
+  if (!res.ok) throw new Error(body.fout || "Er ging iets mis. Probeer het opnieuw.");
+  return body;
+}
+
+// ---------- pincode ----------
+$("pin-knop").onclick = async () => {
+  pin = $("pin").value.trim();
+  $("pin-fout").hidden = true;
+  try {
+    await vraag({ actie: "controleer-pin" });
+    bewaar.set("twoud-pin", pin);
+    start();
+  } catch (e) {
+    $("pin-fout").textContent = "Deze pincode klopt niet. Probeer het nog eens.";
+    $("pin-fout").hidden = false;
+  }
+};
+$("pin").addEventListener("keydown", (e) => { if (e.key === "Enter") $("pin-knop").click(); });
+$("uitloggen").onclick = () => { bewaar.weg("twoud-pin"); pin = null; $("pin").value = ""; scherm("pin"); };
+
+// ---------- regels ----------
+function tekenRegels() {
+  const box = $("regels");
+  box.innerHTML = "";
+  regels.forEach((r, i) => {
+    const el = document.createElement("div");
+    el.className = "regel";
+    el.innerHTML = `
+      <label class="oms"><span>Omschrijving</span><input id="r-oms-${i}" autocomplete="off"></label>
+      <label class="bedrag"><span>Bedrag zonder btw</span><input id="r-bed-${i}" inputmode="decimal" autocomplete="off" placeholder="€"></label>
+      <button class="weg" title="Regel weghalen" aria-label="Regel weghalen">×</button>
+      ${r.btw != null && r.btw !== 21 && r.bedrag != null ? `<span class="btwnoot" style="grid-column:1/-1">Let op: ${r.btw}% btw op deze regel</span>` : ""}`;
+    const oms = el.querySelector(".oms input"), bed = el.querySelector(".bedrag input");
+    oms.value = r.omschrijving || "";
+    bed.value = toonBedrag(r.bedrag);
+    if (r.twijfel) { oms.classList.add("twijfel"); bed.classList.add("twijfel"); }
+    oms.oninput = () => { r.omschrijving = oms.value; oms.classList.remove("twijfel"); bewaarConcept(); };
+    bed.oninput = () => { r.bedrag = leesBedrag(bed.value); bed.classList.remove("twijfel"); rekenen(); bewaarConcept(); };
+    bed.onblur = () => { if (r.bedrag != null && !isNaN(r.bedrag)) bed.value = toonBedrag(r.bedrag); };
+    el.querySelector(".weg").onclick = () => { regels.splice(i, 1); if (!regels.length) regels.push(leegRegel()); tekenRegels(); rekenen(); bewaarConcept(); };
+    box.appendChild(el);
+  });
+}
+const leegRegel = () => ({ omschrijving: "", bedrag: null, btw: 21 });
+$("regel-erbij").onclick = () => { regels.push(leegRegel()); tekenRegels(); $("r-oms-" + (regels.length - 1)).focus(); };
+
+function rekenen() {
+  let sub = 0; const perTarief = {};
+  for (const r of regels) if (r.bedrag != null && !isNaN(r.bedrag)) {
+    sub += r.bedrag; const t = r.btw ?? 21; perTarief[t] = (perTarief[t] || 0) + r.bedrag;
+  }
+  let btw = 0; const box = $("t-btw-regels"); box.innerHTML = "";
+  Object.keys(perTarief).map(Number).filter((t) => t > 0).sort((a, b) => b - a).forEach((t) => {
+    const b = Math.round(perTarief[t] * t) / 100; btw += b;
+    const d = document.createElement("div"); d.style.display = "flex"; d.style.justifyContent = "space-between";
+    d.innerHTML = `<span>Btw ${t}%</span><span>${euro(b)}</span>`; box.appendChild(d);
+  });
+  $("t-sub").textContent = euro(sub);
+  $("t-tot").textContent = euro(sub + btw);
+}
+
+// ---------- concept bewaren op dit apparaat ----------
+const velden = ["k-naam", "k-adres", "k-plaats", "betreft"];
+function bewaarConcept() {
+  bewaar.set("twoud-concept", JSON.stringify({ v: Object.fromEntries(velden.map((id) => [id, $(id).value])), regels }));
+}
+function laadConcept() {
+  try {
+    const c = JSON.parse(bewaar.get("twoud-concept") || "null");
+    if (c) { velden.forEach((id) => $(id).value = c.v?.[id] || ""); regels = c.regels?.length ? c.regels : [leegRegel()]; return; }
+  } catch {}
+  regels = [leegRegel(), leegRegel()];
+}
+velden.forEach((id) => $(id).addEventListener("input", () => { $(id).classList.remove("twijfel"); bewaarConcept(); }));
+
+function leegmaken() {
+  velden.forEach((id) => { $(id).value = ""; $(id).classList.remove("twijfel"); });
+  regels = [leegRegel(), leegRegel()];
+  $("meldingen").innerHTML = ""; $("maak-fout").hidden = true;
+  bewaar.weg("twoud-concept");
+  tekenRegels(); rekenen();
+}
+$("leeg-knop").onclick = () => {
+  const k = $("leeg-knop");
+  if (k.dataset.zeker) { leegmaken(); delete k.dataset.zeker; k.textContent = "Alles leegmaken"; return; }
+  k.dataset.zeker = "1"; k.textContent = "Zeker weten? Tik nog een keer";
+  setTimeout(() => { delete k.dataset.zeker; k.textContent = "Alles leegmaken"; }, 4000);
+};
+
+// ---------- foto ----------
+$("foto-knop").onclick = () => $("foto").click();
+$("foto").onchange = async () => {
+  const file = $("foto").files[0];
+  $("foto").value = "";
+  if (!file) return;
+  $("meldingen").innerHTML = ""; $("maak-fout").hidden = true;
+  $("bezig").hidden = false; $("bezig-tekst").textContent = "Rekening wordt gelezen… (± 20 seconden)";
+  $("foto-knop").disabled = true; $("maak-knop").disabled = true;
+  try {
+    const foto = await verklein(file);
+    const { gegevens: g, controle } = await vraag({ actie: "lees", foto, type: "image/jpeg" });
+    vulIn(g, controle);
+  } catch (e) {
+    melding("fout", "Het lezen van de foto lukte niet", [e.message, "Maak de foto recht van boven met goed licht, of vul de factuur zelf in."]);
+  } finally {
+    $("bezig").hidden = true; $("foto-knop").disabled = false; $("maak-knop").disabled = false;
+  }
+};
+
+function verklein(file) {
+  return new Promise((ok, fout) => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 2000, s = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(img.src);
+      ok(c.toDataURL("image/jpeg", 0.85).split(",")[1]);
+    };
+    img.onerror = () => fout(new Error("Deze foto kan niet geopend worden."));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function vulIn(g, controle) {
+  const k = g.klant || {};
+  $("k-naam").value = k.naam || ""; $("k-adres").value = k.adres || ""; $("k-plaats").value = k.postcode_plaats || "";
+  $("betreft").value = g.betreft || "";
+  regels = [];
+  for (const r of g.regels || []) {
+    regels.push({ omschrijving: r.omschrijving || "", bedrag: r.bedrag ?? null, btw: r.btw ?? 21 });
+    for (const t of r.toelichting || []) regels.push({ omschrijving: t.startsWith("-") ? t : "- " + t, bedrag: null, btw: 21 });
+  }
+  if (!regels.length) regels.push(leegRegel());
+
+  // Twijfels oranje maken waar we ze kunnen herkennen
+  const twijfels = g.twijfels || [];
+  const woorden = (s) => String(s).toLowerCase().match(/[a-zà-ÿ0-9]{3,}/g) || [];
+  for (const t of twijfels) {
+    const tl = t.toLowerCase();
+    if (/huisnummer|adres|straat/.test(tl)) $("k-adres").classList.add("twijfel");
+    if (/postcode|plaats/.test(tl)) $("k-plaats").classList.add("twijfel");
+    if (/klant|naam/.test(tl)) $("k-naam").classList.add("twijfel");
+    for (const r of regels) if (woorden(r.omschrijving).some((w) => w.length > 4 && tl.includes(w))) r.twijfel = true;
+  }
+  tekenRegels(); rekenen(); bewaarConcept();
+
+  if (twijfels.length) melding("let-op", "Kijk deze punten even na (oranje):", twijfels);
+  if (controle?.meldingen?.length) melding("let-op", "De bedragen kloppen niet met wat op papier staat:", controle.meldingen);
+  if (!twijfels.length && !controle?.meldingen?.length) melding("goed", "Alles gelezen en de bedragen kloppen. Kijk het even na en maak de factuur.", []);
+}
+
+function melding(soort, kop, punten) {
+  const d = document.createElement("div");
+  d.className = "melding " + soort;
+  const s = document.createElement("strong"); s.textContent = kop; d.appendChild(s);
+  if (punten.length) { const ul = document.createElement("ul"); punten.forEach((p) => { const li = document.createElement("li"); li.textContent = p; ul.appendChild(li); }); d.appendChild(ul); }
+  $("meldingen").appendChild(d);
+  d.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+// ---------- factuur maken ----------
+$("maak-knop").onclick = async () => {
+  const fout = (t) => { $("maak-fout").textContent = t; $("maak-fout").hidden = false; $("maak-fout").scrollIntoView({ block: "center" }); };
+  $("maak-fout").hidden = true;
+  if (!$("k-naam").value.trim()) return fout("Vul de naam van de klant in.");
+  const bruikbaar = regels.filter((r) => (r.omschrijving || "").trim() || r.bedrag != null);
+  if (bruikbaar.some((r) => r.bedrag != null && isNaN(r.bedrag))) return fout("Een bedrag klopt niet. Typ alleen cijfers, bijvoorbeeld 1250,00.");
+  if (!bruikbaar.some((r) => r.bedrag != null)) return fout("Vul minstens één bedrag in.");
+
+  const k = $("maak-knop"); k.disabled = true; k.lastChild.textContent = " Factuur wordt gemaakt…";
+  try {
+    const r = await vraag({ actie: "maak", factuur: {
+      klant: { naam: $("k-naam").value, adres: $("k-adres").value, postcode_plaats: $("k-plaats").value },
+      betreft: $("betreft").value,
+      regels: bruikbaar.map((x) => ({ omschrijving: x.omschrijving, bedrag: x.bedrag, btw: x.btw ?? 21, aantal: 1 })),
+    } });
+    $("klaar-nummer").textContent = "Factuur " + r.nummer;
+    $("klaar-tekst").textContent = r.gemaild_naar
+      ? `Totaal ${euro(r.totaal)}. De factuur is gemaild naar ${r.gemaild_naar}. Open uw mail en druk de bijlage af.`
+      : `Totaal ${euro(r.totaal)}. Mailen lukte niet, open de PDF hieronder en druk die af.`;
+    const blob = new Blob([Uint8Array.from(atob(r.pdf), (c) => c.charCodeAt(0))], { type: "application/pdf" });
+    $("klaar-pdf").href = URL.createObjectURL(blob);
+    $("klaar-pdf").download = r.bestandsnaam;
+    bewaar.weg("twoud-concept");
+    scherm("klaar");
+  } catch (e) {
+    fout(e.message);
+  } finally {
+    k.disabled = false; k.lastChild.textContent = " Maak factuur en mail naar mij";
+  }
+};
+$("nieuw-knop").onclick = () => { leegmaken(); scherm("factuur"); };
+
+function start() { laadConcept(); tekenRegels(); rekenen(); scherm("factuur"); }
+if (pin) start(); else scherm("pin");
+</script>
+</body>
+</html>
