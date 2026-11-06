@@ -1,6 +1,7 @@
 // Factuurdienst 't Woud: foto van handgeschreven rekening -> gecontroleerde gegevens -> PDF per mail.
 // Acties (POST JSON):
 //   { actie: "lees", pin, foto: <base64>, type: "image/jpeg" }  -> gelezen gegevens + controles
+//   { actie: "voorbeeld", pin, factuur: {...} }                  -> PDF om te bekijken (niets opgeslagen)
 //   { actie: "maak", pin, factuur: {...} }                       -> nummer, PDF en mail
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import { maakPdf, totalen, euro, datumNL, round2, type Regel } from "./pdf.ts";
@@ -182,6 +183,27 @@ Deno.serve(async (req) => {
       const g = await leesFoto(foto, type);
       g.regels = schoonRegels(g.regels);
       return json({ gegevens: g, controle: controleer(g) });
+    }
+
+    if (body.actie === "voorbeeld") {
+      const f = body.factuur as Record<string, any>;
+      if (!f?.klant?.naam) return json({ fout: "Vul de naam van de klant in." }, 400);
+      const regels = schoonRegels(f.regels);
+      if (!regels.some((r) => r.bedrag != null)) return json({ fout: "Vul minstens één bedrag in." }, 400);
+      const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const factuurdatum = vandaag();
+      const jaar = Number(factuurdatum.slice(0, 4));
+      const { data: rij } = await sb.from("factuurnummers").select("laatste").eq("jaar", jaar).maybeSingle();
+      const nummer = `${jaar}-${String((rij?.laatste ?? 0) + 1).padStart(4, "0")}`;
+      const pdf = await maakPdf({
+        nummer, factuurdatum, vervaldatum: plusDagen(factuurdatum, TERMIJN_DAGEN),
+        klant: {
+          naam: String(f.klant.naam).trim(), adres: String(f.klant.adres ?? "").trim(),
+          postcode_plaats: String(f.klant.postcode_plaats ?? "").trim(), extra: String(f.klant.extra ?? "").trim(),
+        },
+        betreft: String(f.betreft ?? "").trim(), regels,
+      });
+      return json({ nummer, totaal: totalen(regels).totaal, pdf: bytesToB64(pdf) });
     }
 
     if (body.actie === "maak") {
